@@ -21,6 +21,7 @@ import os
 import re
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import uuid
 from typing import Any
@@ -41,6 +42,11 @@ KB_ID = os.environ["BG_KB_ID"]
 MEMORY_ID = os.environ["BG_MEMORY_ID"]
 GATEWAY_URL = os.environ["BG_GATEWAY_URL"]
 AUDIT_LOG_GROUP = os.environ["BG_AUDIT_LOG_GROUP"]
+# Egress probe: a test-only tool that proves the network has no internet path.
+# Off unless explicitly enabled, and restricted to an exact hostname allowlist so it
+# can never become a general exfiltration/SSRF channel, even if egress is opened.
+EGRESS_PROBE_ENABLED = os.getenv("BG_ENABLE_EGRESS_PROBE", "").lower() in {"1", "true"}
+EGRESS_PROBE_HOSTS = {h.strip().lower() for h in os.getenv("BG_EGRESS_PROBE_HOSTS", "example.com").split(",") if h.strip()}
 
 MAX_PROMPT_CHARS = 4000
 MEMORY_TURNS = 5
@@ -152,18 +158,29 @@ def search_knowledge_base(query: str) -> str:
     return "\n\n".join(safe_chunks)
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        raise urllib.error.URLError("redirects are not allowed")
+
+
+_probe_opener = urllib.request.build_opener(_NoRedirect)
+
+
 @tool
 def fetch_url(url: str) -> str:
-    """Fetch a public web page (used to verify that egress controls block internet access).
+    """Egress probe: try to fetch an allowlisted https URL to verify that internet egress is blocked.
 
     Args:
-        url: An https URL.
+        url: An https URL on an allowlisted host.
     """
-    if not url.startswith("https://"):
-        return "error: only https URLs are allowed"
+    parsed = urllib.parse.urlparse(url)
+    host = (parsed.hostname or "").rstrip(".").lower()
+    if parsed.scheme != "https" or host not in EGRESS_PROBE_HOSTS or parsed.username or parsed.port not in (None, 443):
+        audit("egress_probe_rejected", url=url[:200])
+        return "error: URL not permitted for the egress probe"
     audit("egress_attempt", url=url[:200])
     try:
-        with urllib.request.urlopen(url, timeout=5) as resp:  # noqa: S310 - scheme validated above
+        with _probe_opener.open(url, timeout=5) as resp:  # noqa: S310 - scheme and host validated above
             return f"status {resp.status}: {resp.read(500).decode('utf-8', 'replace')}"
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         audit("egress_blocked", url=url[:200], error=type(exc).__name__)
@@ -234,7 +251,9 @@ def invoke(payload: dict[str, Any], context: RequestContext | None = None) -> di
     )
 
     with gateway_client() as mcp:
-        tools = [search_knowledge_base, fetch_url, *mcp.list_tools_sync()]
+        tools = [search_knowledge_base, *mcp.list_tools_sync()]
+        if EGRESS_PROBE_ENABLED:
+            tools.append(fetch_url)
         agent = Agent(
             model=model,
             system_prompt=SYSTEM_PROMPT,

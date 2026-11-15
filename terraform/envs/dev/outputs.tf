@@ -140,3 +140,8 @@ output "org_scp_json" {
   description = "SCP to enforce guardrails org-wide."
   value       = module.iam.scp_json
 }
+
+output "egress_probe_enabled" {
+  description = "Whether the agent has the test-only egress probe tool."
+  value       = var.enable_egress_probe
+}

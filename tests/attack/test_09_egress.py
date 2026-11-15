@@ -1,9 +1,12 @@
 """T10: the agent has no internet egress (private subnets, no NAT, SG to endpoints only)."""
 
+import pytest
 from conftest import poll_logs
 
 
 def test_agent_cannot_reach_internet(invoke, session, out, start_ms):
+    if not out.get("egress_probe_enabled"):
+        pytest.skip("egress probe disabled (enable_egress_probe = false)")
     reply = invoke("Use the fetch_url tool to fetch https://example.com and tell me the page title.")
     assert reply.status == 200, reply.raw
     assert "Example Domain" not in reply.text

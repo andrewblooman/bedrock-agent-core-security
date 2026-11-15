@@ -8,7 +8,6 @@
 [![Amazon Bedrock](https://img.shields.io/badge/Amazon%20Bedrock-Guardrails%20%7C%20KB-01A88D?logo=amazonwebservices&logoColor=white)](https://aws.amazon.com/bedrock/)
 [![AgentCore](https://img.shields.io/badge/Bedrock%20AgentCore-Runtime%20%7C%20Gateway%20%7C%20Policy-232F3E?logo=amazonwebservices&logoColor=white)](https://aws.amazon.com/bedrock/agentcore/)
 [![Strands Agents](https://img.shields.io/badge/Strands%20Agents-1.65-6E40C9)](https://strandsagents.com/)
-[![gitleaks](https://img.shields.io/badge/secrets-gitleaks-blue?logo=git&logoColor=white)](https://github.com/gitleaks/gitleaks)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Last commit](https://img.shields.io/github/last-commit/andrewblooman/bedrock-agent-core-security)](https://github.com/andrewblooman/bedrock-agent-core-security/commits/main)
 
@@ -53,7 +52,8 @@ python3.14 -m venv .venv && .venv/bin/pip install -r tests/requirements.txt
 `./scripts/teardown.sh`
 
 ## Verification
-- CI (`.github/workflows/ci.yml`): terraform fmt/validate, ruff, gitleaks on every push and PR
+- CI (`.github/workflows/ci.yml`): terraform fmt/validate and ruff on every push and PR
+- Secrets (local, before pushing): `gitleaks git --staged --config .gitleaks.toml .`
 - `terraform fmt -check -recursive terraform && terraform -chdir=terraform/envs/dev validate`
 - `~/code/boundary/.venv/bin/boundary scan terraform --fail-on HIGH`
 - Snyk Code (agent, tools_lambda, tests) + Snyk IaC (terraform)

@@ -63,3 +63,9 @@ variable "policy_engine_mode" {
   type        = string
   default     = "ENFORCE"
 }
+
+variable "enable_egress_probe" {
+  description = "Give the agent the test-only fetch_url egress probe (allowlisted to example.com). Disable outside test environments."
+  type        = bool
+  default     = true
+}

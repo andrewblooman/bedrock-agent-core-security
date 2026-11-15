@@ -112,6 +112,10 @@ module "runtime" {
   jwt_allowed_clients              = [module.identity.trusted_client_id]
   admin_principal_arns             = local.admin_arns
   force_destroy                    = true
+  extra_environment = var.enable_egress_probe ? {
+    BG_ENABLE_EGRESS_PROBE = "true"
+    BG_EGRESS_PROBE_HOSTS  = "example.com"
+  } : {}
 }
 
 module "detection" {
