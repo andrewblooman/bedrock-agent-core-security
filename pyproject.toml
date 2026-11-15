@@ -1,0 +1,15 @@
+[project]
+name = "bedrock-guard"
+version = "0.1.0"
+requires-python = ">=3.14"
+
+[tool.ruff]
+line-length = 140
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "S", "UP", "BLE"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S603", "S607", "S105", "S106"]

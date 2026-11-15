@@ -1,0 +1,20 @@
+# Extends the default gitleaks rules. The allowlists below cover only the
+# deliberate test fixtures and known false positives in this repo. Keep them narrow.
+title = "bedrock-agent-core-security"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Planted canary secrets (fake, used to test exfiltration controls)"
+regexes = ['''BGCANARY-[A-Z0-9]{12}''']
+
+[[allowlists]]
+description = "Forged unsigned JWT used to test that the runtime rejects it"
+paths = ['''tests/attack/test_01_authn\.py''']
+regexes = ['''eyJhbGciOiJSUzI1NiJ9\.eyJzdWIiOiJhdHRhY2tlciIsImNsaWVudF9pZCI6ImV2aWwifQ\.c2lnbmF0dXJl''']
+
+[[allowlists]]
+description = "S3 key_prefix arguments are not secrets"
+regexTarget = "line"
+regexes = ['''key_prefix\s*=\s*(var\.|")''']
